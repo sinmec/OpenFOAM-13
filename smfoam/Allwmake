@@ -1,0 +1,26 @@
+#!/bin/sh
+cd ${0%/*} || exit 1
+
+. ../wmake/scripts/AllwmakeParseArguments
+
+wmakeCheckPwd "$WM_PROJECT_DIR/smfoam" || {
+    echo "Allwmake error: Current directory is not \$WM_PROJECT_DIR/smfoam"
+    echo "    The OpenFOAM environment may not be configured for this checkout."
+    exit 1
+}
+
+echo "========================================"
+echo "   Compiling SINMEC Code"
+echo "========================================"
+
+if [ -d src ]; then
+    wmake -all $targetType src || exit $?
+fi
+
+if [ -d applications ]; then
+    wmake -all $targetType applications || exit $?
+fi
+
+echo "========================================"
+echo "   SINMEC Compilation Complete!"
+echo "========================================"
