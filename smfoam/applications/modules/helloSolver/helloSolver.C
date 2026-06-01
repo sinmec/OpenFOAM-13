@@ -16,9 +16,7 @@ namespace solvers
 
 Foam::solvers::helloSolver::helloSolver(fvMesh& mesh)
 :
-    movingMesh(mesh),
-    step_(0),
-    currentHello_("")
+    movingMesh(mesh)
 {
     Info<< "[helloSolver] created" << endl;
 }
@@ -31,8 +29,7 @@ Foam::solvers::helloSolver::~helloSolver()
 void Foam::solvers::helloSolver::traceStage(const char* stage) const
 {
     Info<< "[helloSolver] " << stage
-        << " | time=" << runTime.userTimeName()
-        << " step=" << step_ << endl;
+        << " | time=" << runTime.userTimeName() << endl;
 }
 
 
@@ -108,5 +105,4 @@ void Foam::solvers::helloSolver::thermophysicalTransportCorrector()
 void Foam::solvers::helloSolver::postSolve()
 {
     traceStage("postSolve");
-    step_++;
 }
