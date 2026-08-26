@@ -61,7 +61,25 @@ void Smagorinsky<BasicMomentumTransportModel>::correctNut()
 {
     volScalarField k(this->k(fvc::grad(this->U_)));
 
-    this->nut_ = this->Ck_*this->delta()*sqrt(k);
+    // Viscosidade turbulenta do Smagorinsky
+    volScalarField nuTurb = this->Ck_*this->delta()*sqrt(k);
+
+    // Fração volumétrica da fase contínua (H2O) - passada pelo solver
+    const volScalarField& alphaLiq = this->alpha_;
+
+    // Limitadores para evitar divisão por zero e sigFpe
+    volScalarField alphaLim = min(max(alphaLiq, scalar(0.05)), scalar(1.0));
+
+    // Viscosidade molecular da fase contínua
+    const volScalarField& nu = this->nu();
+
+    // Correlação: nu' = nu * [(1/alpha)^2 - 1]
+    volScalarField nuParticle = nu * (pow(alphaLim, -2) - 1.0);
+
+    // nut_ armazena turbulenta + partículas
+    // A classe base calcula nuEff() = nu() + nut_ automaticamente
+    this->nut_ = nuTurb + nuParticle;
+
     this->nut_.correctBoundaryConditions();
     fvConstraints::New(this->mesh_).constrain(this->nut_);
 }
@@ -91,7 +109,13 @@ Smagorinsky<BasicMomentumTransportModel>::Smagorinsky
         phi,
         viscosity
     )
-{}
+{
+    // FORÇA a leitura dos coeficientes do dicionário
+    this->read();
+    
+    Info<< ">>> Smagorinsky loaded with Ck = " << this->Ck_
+        << ", Ce = " << this->Ce_ << endl;
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -99,7 +123,21 @@ Smagorinsky<BasicMomentumTransportModel>::Smagorinsky
 template<class BasicMomentumTransportModel>
 bool Smagorinsky<BasicMomentumTransportModel>::read()
 {
-    return LESeddyViscosity<BasicMomentumTransportModel>::read();
+    if (LESeddyViscosity<BasicMomentumTransportModel>::read())
+    {
+        // Tenta ler Ck e Ce do sub-dicionário SmagorinskyCoeffs
+        const dictionary& coeffs = this->coeffDict();
+        
+        coeffs.readIfPresent("Ck", this->Ck_);
+        coeffs.readIfPresent("Ce", this->Ce_);
+
+        Info<< ">>> Smagorinsky read() updated Ck = " << this->Ck_
+            << ", Ce = " << this->Ce_ << endl;
+
+        return true;
+    }
+
+    return false;
 }
 
 
